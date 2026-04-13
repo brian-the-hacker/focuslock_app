@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:description="Focus Lock uses accessibility to block access to VPN settings during active focus sessions, preventing interruption of your internet blocking feature."
+    android:notificationTimeout="100"
+    android:settingsActivity="com.example.focuslock_app.MainActivity" />
