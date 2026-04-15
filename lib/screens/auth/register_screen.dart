@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../home_screen.dart';
+import '../setup_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -27,7 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (result['access_token'] != null) {
         if (mounted) {
           Navigator.pushAndRemoveUntil(context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()), (_) => false);
+            MaterialPageRoute(builder: (_) => const SetupScreen()), (_) => false);
         }
       } else {
         setState(() { _error = result['detail'] ?? 'Registration failed'; });

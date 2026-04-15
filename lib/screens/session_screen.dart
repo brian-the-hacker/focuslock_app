@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../services/vpn_service.dart';
+import '../services/session_storage.dart';
 
 class SessionScreen extends StatefulWidget {
   final int sessionId;
   final int durationMins;
   final String mode;
   final double previewCoins;
+  final int endTimeMs; // absolute end time — 0 means calculate from durationMins
 
   const SessionScreen({
     super.key,
@@ -16,6 +18,7 @@ class SessionScreen extends StatefulWidget {
     required this.durationMins,
     required this.mode,
     required this.previewCoins,
+    this.endTimeMs = 0,
   });
 
   @override
@@ -44,44 +47,37 @@ class _SessionScreenState extends State<SessionScreen> {
   @override
   void initState() {
     super.initState();
-    _totalSeconds     = widget.durationMins * 60;
-    _remainingSeconds = _totalSeconds;
+    _totalSeconds = widget.durationMins * 60;
+
+    // If resuming a session, calculate remaining seconds from absolute end time
+    if (widget.endTimeMs > 0) {
+      final remaining = widget.endTimeMs - DateTime.now().millisecondsSinceEpoch;
+      _remainingSeconds = (remaining / 1000).round().clamp(0, _totalSeconds);
+    } else {
+      _remainingSeconds = _totalSeconds;
+    }
+
     _startVpn();
     _startTimer();
   }
 
   Future<void> _startVpn() async {
     if (widget.mode == 'internet' || widget.mode == 'hybrid') {
-      // Check if accessibility service is enabled
-      final accessEnabled = await VpnKillService.isAccessibilityEnabled();
-      if (!accessEnabled && mounted) {
-        // Prompt user to enable it
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            title: const Text('Enable Accessibility'),
-            content: const Text(
-              'Focus Lock needs accessibility permission to block '
-              'VPN settings during your session.\n\n'
-              'Tap OK → find "Focus Lock" → enable it.',
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await VpnKillService.openAccessibilitySettings();
-                },
-                child: const Text('OK, ENABLE IT'),
-              ),
-            ],
-          ),
-        );
-      }
+      final endTimeMs = widget.endTimeMs > 0
+          ? widget.endTimeMs
+          : DateTime.now()
+              .add(Duration(minutes: widget.durationMins))
+              .millisecondsSinceEpoch;
 
-      final endTimeMs = DateTime.now()
-          .add(Duration(minutes: widget.durationMins))
-          .millisecondsSinceEpoch;
+      // Save session for memory recovery
+      await SessionStorage.saveSession(
+        sessionId:    widget.sessionId,
+        durationMins: widget.durationMins,
+        mode:         widget.mode,
+        previewCoins: widget.previewCoins,
+        endTimeMs:    endTimeMs,
+      );
+
       await VpnKillService.requestPermissionAndStart(endTimeMs: endTimeMs);
     }
   }
@@ -101,6 +97,7 @@ class _SessionScreenState extends State<SessionScreen> {
     setState(() => _completed = true);
     _timer?.cancel();
     await VpnKillService.stop();
+    await SessionStorage.clearSession(); // ← add this
     
     print('DEBUG: Calling completeSession for session ${widget.sessionId}');
     try {
