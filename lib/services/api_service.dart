@@ -6,7 +6,7 @@ import '../models/stats.dart';
 import '../models/session.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://web-production-1e4ea.up.railway.app';
+  static const String baseUrl = 'https://focuslock.onrender.com';
   static const _storage = FlutterSecureStorage();
 
   // ── Token management ──────────────────────────────────────
